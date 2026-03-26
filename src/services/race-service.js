@@ -1,0 +1,101 @@
+const {TYRE_TYOES,races,Tracks,MODES,RACESTATUS,cars} = require("../storage/races")
+
+
+function createRace(input){
+    try {
+        
+        console.log("reached services");
+        const raceId = Date.now().toString();
+
+        const race ={
+            id : raceId,
+            trackId : input.trackId,
+            teamId : input.teamId,
+            carId : input.teamId,
+            totalLaps : 10,
+            raceStatus : "PAUSED",
+        };
+
+        const raceState = {
+            currentLap : 0,
+            carStates : {},
+            positions : [],
+            events : [],
+            pitStops : [],
+            
+        }
+
+        cars.forEach((carId)=>{
+            raceState.carStates[carId]={
+                tyre : input.startingTyre || TYRE_TYOES.MEDIUM,
+                tyreWear : 0,
+                totalTime : 0,
+                lastLapTime : 0,
+                pitCount : 0,
+                energy : 100,
+                mode : MODES.NORMAL,
+
+            };
+            raceState.positions.push(carId);
+        });
+
+        races.set(raceId,{
+            race,
+            raceState,
+
+        });
+
+        return {
+            raceId,
+            race,
+            raceState
+        };
+    } catch (error) {``
+        
+    }
+}
+
+function runLap(commands, raceId){
+    try {
+        console.log("inside service")
+        console.log(raceId);
+        const raceData = races.get(raceId);
+        const raceState = raceData.raceState;
+        const userCar = raceData.race.carId;
+        const userCarState = raceState.carStates[userCar];
+        if(commands.tyre){
+            userCarState.tyre = commands.tyre;
+            userCarState.tyreWear = 0;
+            userCarState.pitCount++;
+            userCarState.totalTime+=20;
+            userCarState.energy+=10;
+            if(userCarState.energy>100)userCarState.energy=100;
+             
+            console.log("command operated");
+        }
+        if(commands.mode){
+            userCarState.mode = commands.mode; 
+        }
+        
+        cars.forEach((carId)=>{
+            const car = raceState.carStates[carId];
+            
+            car.tyreWear += 10;
+            if(car.tyreWear>100)car.tyreWear=100;
+        })
+
+        raceState.currentLap++;
+        
+        return raceState;
+
+    } catch (error) {
+        throw error;
+    }
+}
+
+
+
+module.exports={
+    createRace,
+    runLap
+}
