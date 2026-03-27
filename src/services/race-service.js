@@ -27,7 +27,7 @@ function createRace(input){
 
         cars.forEach((carId)=>{
             raceState.carStates[carId]={
-                carId : input.teamId,
+                carID : carId,
                 tyre : input.startingTyre || TYRE_TYRES.MEDIUM,
                 tyreWear : 0,
                 totalTime : 0,
@@ -86,21 +86,23 @@ function runLap(commands, raceId){
             if(car.tyreWear>100)car.tyreWear=100;
         })
         
-        
-        const baseLapTime = Tracks[raceData.race.trackId].baseLapTime;
+        const trackId = raceData.race.trackId;
+        console.log(trackId);
+        console.log(Tracks[trackId]);
+        const baseLapTime = Tracks[trackId].baseLapTime;
         cars.forEach((carId)=>{
-            const lapTime = baseLapTime;
+            let lapTime = baseLapTime;
             const carState = raceState.carStates[carId];
 
             if(carState.tyre == TYRE_TYRES.SOFT)lapTime *=0.97;
             if(carState.tyre == TYRE_TYRES.HARD)lapTime *=1.03;
 
-            laptime += carState.tyreWear * 0.05;
+            lapTime += carState.tyreWear * 0.05;
 
-            laptime += carState.mode == MODES.AGGRESIVE ? -1 : (carState.mode == MODES.CONSERVE ? 1 : 0);
+            lapTime += carState.mode == MODES.AGGRESIVE ? -1 : (carState.mode == MODES.CONSERVE ? 1 : 0);
             
             const randomness = getRandomIntInclusive(90, 110) /100 ;
-            laptime *= randomness;
+            lapTime *= randomness;
             carState.lastLapTime = lapTime;
             carState.totalTime += lapTime;
             
@@ -110,10 +112,9 @@ function runLap(commands, raceId){
 
         const carArr = Object.values(raceState.carStates);
         raceState.positions = carArr.sort((a,b)=>{
-                a.totalTime - b.totalTime
-            }).map((car)=>car.carId);
+            return (a.totalTime - b.totalTime);
+            }).map((car)=>car.carID);
         
-
 
         return raceState;
 
@@ -122,6 +123,14 @@ function runLap(commands, raceId){
     }
 }
 
+function getRandomIntInclusive(min, max) {
+  // Use Math.ceil to ensure the min is handled correctly even if a float is passed
+  min = Math.ceil(min); 
+  // Use Math.floor to ensure the max is handled correctly even if a float is passed
+  max = Math.floor(max); 
+  // The core formula: scales Math.random() to the desired range size (+1 to be inclusive) and shifts it by the min value.
+  return Math.floor(Math.random() * (max - min + 1)) + min; 
+}
 
 
 module.exports={

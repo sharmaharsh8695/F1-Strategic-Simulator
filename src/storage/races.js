@@ -17,6 +17,7 @@ const RACESTATUS = {
 
 const cars = ["Ferrari","Mclaren","Mercedes","Cadillac","RedBull"];
 
+
 const MODES = {
     AGGRESIVE : "AGGRESIVE",
     NORMAL : "NORMAL",
@@ -24,12 +25,12 @@ const MODES = {
 }
 
 const Tracks = {
-    track1:{
+    AUSTRALIA:{
         id: "track1",
         name: "Austraia",
         baseLapTime : 70
     },
-    track2:{
+    MONACO:{
         id: "track2",
         name: "Monaco",
         baseLapTime : 80
