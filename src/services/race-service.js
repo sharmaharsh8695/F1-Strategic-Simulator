@@ -66,6 +66,22 @@ function runLap(commands, raceId){
         const userCar = raceData.race.carId;
         const userCarState = raceState.carStates[userCar];
 
+        
+        cars.forEach((carId)=>{// tyrewear foreach car
+            const car = raceState.carStates[carId];
+            
+            car.tyreAge++;
+            car.tyreWear += getRandomIntInclusive(8,16);
+            const ed = car.mode == MODES.AGGRESIVE ? 95 : (car.mode == MODES.CONSERVE ? 107 : 99);
+            car.energy-=getRandomIntInclusive(9,15);
+            car.energy *= ed/100;
+            if(car.energy < 0){
+                car.energy = 0
+            }
+            if(car.tyreWear>100)car.tyreWear=100;
+        })
+        
+
         if(commands.tyre){//user car action tyre
             userCarState.tyre = commands.tyre;
             userCarState.tyreWear = 0;
@@ -79,18 +95,10 @@ function runLap(commands, raceId){
         }
         if(commands.mode){//user car action mode
             userCarState.mode = commands.mode;
+            if(userCarState.energy<20 && userCarState.mode==MODES.AGGRESIVE)userCarState.mode==MODES.NORMAL;
         }
-        
-        cars.forEach((carId)=>{// tyrewear foreach car
-            const car = raceState.carStates[carId];
-            
-            car.tyreAge++;
-            car.tyreWear += getRandomIntInclusive(8,16);
-            const ed =   
-            car.energy-=getRandomIntInclusive
-            if(car.tyreWear>100)car.tyreWear=100;
-        })
-        
+
+
         const trackId = raceData.race.trackId;
         console.log(trackId);
         console.log(Tracks[trackId]);
@@ -112,7 +120,6 @@ function runLap(commands, raceId){
             lapTime *= randomness;
             carState.lastLapTime = lapTime;
             carState.totalTime += lapTime;
-            carState.tyreAge+=1;
             
         })
 
@@ -138,7 +145,7 @@ function runLap(commands, raceId){
                 }
 
                 const md = getRandomIntInclusive(1,4);
-                car.mode = (car.energy < 40) ? (md<3 ? MODES.CONSERVE : MODES.NORMAL) : (md>1 ? MODES.AGGRESIVE : (md<4 ? MODES.CONSERVE : MODES.NORMAL));
+                car.mode = (car.energy < 30) ? (md<3 ? MODES.CONSERVE : MODES.NORMAL) : (md>1 ? MODES.AGGRESIVE : (md<4 ? MODES.CONSERVE : MODES.NORMAL));
             }
         });
           
