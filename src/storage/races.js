@@ -1,6 +1,6 @@
 let races = new Map();
 
-const TYRE_TYOES={
+const TYRE_TYRES={
     SOFT : "SOFT",
     MEDIUM : "MEDIUM",
     HARD : "HARD",
@@ -27,19 +27,19 @@ const Tracks = {
     track1:{
         id: "track1",
         name: "Austraia",
-        BaseLapTime : 70
+        baseLapTime : 70
     },
     track2:{
         id: "track2",
         name: "Monaco",
-        BaseLapTime : 80
+        baseLapTime : 80
     }
 }
 
 module.exports = {
     races,
     MODES,
-    TYRE_TYOES,
+    TYRE_TYRES,
     Tracks,
     RACESTATUS,
     cars,

@@ -1,4 +1,4 @@
-const {TYRE_TYOES,races,Tracks,MODES,RACESTATUS,cars} = require("../storage/races")
+const {TYRE_TYRES,races,Tracks,MODES,RACESTATUS,cars} = require("../storage/races")
 
 
 function createRace(input){
@@ -27,7 +27,8 @@ function createRace(input){
 
         cars.forEach((carId)=>{
             raceState.carStates[carId]={
-                tyre : input.startingTyre || TYRE_TYOES.MEDIUM,
+                carId : input.teamId,
+                tyre : input.startingTyre || TYRE_TYRES.MEDIUM,
                 tyreWear : 0,
                 totalTime : 0,
                 lastLapTime : 0,
@@ -63,7 +64,8 @@ function runLap(commands, raceId){
         const raceState = raceData.raceState;
         const userCar = raceData.race.carId;
         const userCarState = raceState.carStates[userCar];
-        if(commands.tyre){
+
+        if(commands.tyre){//user car action tyre
             userCarState.tyre = commands.tyre;
             userCarState.tyreWear = 0;
             userCarState.pitCount++;
@@ -73,19 +75,46 @@ function runLap(commands, raceId){
              
             console.log("command operated");
         }
-        if(commands.mode){
-            userCarState.mode = commands.mode; 
+        if(commands.mode){//user car action mode
+            userCarState.mode = commands.mode;
         }
         
-        cars.forEach((carId)=>{
+        cars.forEach((carId)=>{// tyrewear foreach car
             const car = raceState.carStates[carId];
             
             car.tyreWear += 10;
             if(car.tyreWear>100)car.tyreWear=100;
         })
-
-        raceState.currentLap++;
         
+        
+        const baseLapTime = Tracks[raceData.race.trackId].baseLapTime;
+        cars.forEach((carId)=>{
+            const lapTime = baseLapTime;
+            const carState = raceState.carStates[carId];
+
+            if(carState.tyre == TYRE_TYRES.SOFT)lapTime *=0.97;
+            if(carState.tyre == TYRE_TYRES.HARD)lapTime *=1.03;
+
+            laptime += carState.tyreWear * 0.05;
+
+            laptime += carState.mode == MODES.AGGRESIVE ? -1 : (carState.mode == MODES.CONSERVE ? 1 : 0);
+            
+            const randomness = getRandomIntInclusive(90, 110) /100 ;
+            laptime *= randomness;
+            carState.lastLapTime = lapTime;
+            carState.totalTime += lapTime;
+            
+        })
+
+        raceState.currentLap++;//increasae lap
+
+        const carArr = Object.values(raceState.carStates);
+        raceState.positions = carArr.sort((a,b)=>{
+                a.totalTime - b.totalTime
+            }).map((car)=>car.carId);
+        
+
+
         return raceState;
 
     } catch (error) {
