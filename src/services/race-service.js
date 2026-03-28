@@ -20,7 +20,7 @@ function createRace(input){
             currentLap : 0,
             carStates : {},
             positions : [],
-            events : [],
+            events : {},
             pitStops : [],
             
         }
@@ -40,6 +40,29 @@ function createRace(input){
             };
             raceState.positions.push(carId);
         });
+
+        const eventLap = getRandomIntInclusive(1,race.totalLaps-2);
+        const eventLength = getRandomIntInclusive(1,2);
+
+        const eventProb = getRandomIntInclusive(1,100);
+        if(eventProb<5)raceState.events={
+            eventLap,
+            eventLength : 1,
+            currEventLap : 0,
+            eventType : "Crash",
+            done : false,
+
+        };
+        if(eventProb > 96){
+            raceState.events={
+            eventLap,
+            eventLength,
+            currEventLap : 0,
+            eventType : "Rain",
+            done : false,
+
+        };
+        }
 
         races.set(raceId,{
             race,
@@ -66,7 +89,7 @@ function runLap(commands, raceId){
         const userCar = raceData.race.carId;
         const userCarState = raceState.carStates[userCar];
 
-        
+        // POST LAP EFFECTS        
         cars.forEach((carId)=>{// tyrewear foreach car
             const car = raceState.carStates[carId];
             
@@ -81,7 +104,7 @@ function runLap(commands, raceId){
             if(car.tyreWear>100)car.tyreWear=100;
         })
         
-
+        //USER CAR
         if(commands.tyre){//user car action tyre
             userCarState.tyre = commands.tyre;
             userCarState.tyreWear = 0;
@@ -95,42 +118,14 @@ function runLap(commands, raceId){
         }
         if(commands.mode){//user car action mode
             userCarState.mode = commands.mode;
-            if(userCarState.energy<20 && userCarState.mode==MODES.AGGRESIVE)userCarState.mode==MODES.NORMAL;
+            if(userCarState.energy<20 && userCarState.mode==MODES.AGGRESIVE)userCarState.mode = MODES.NORMAL;
         }
 
+        //NEXT_LAP PREPARATION
+        const event = raceState.events;
+       
 
-        const trackId = raceData.race.trackId;
-        console.log(trackId);
-        console.log(Tracks[trackId]);
-        const baseLapTime = Tracks[trackId].baseLapTime;
-        cars.forEach((carId)=>{
-            let lapTime = baseLapTime;
-            const carState = raceState.carStates[carId];
-
-            if(carState.tyre == TYRE_TYRES.SOFT)lapTime *=(getRandomIntInclusive(94,98)/100);
-            if(carState.tyre == TYRE_TYRES.HARD)lapTime *=(getRandomIntInclusive(103,107)/100);
-
-            lapTime += carState.tyreWear * getRandomIntInclusive(3,7)/100;
-
-            const modeTime = getRandomIntInclusive(95,105)/100;
-            lapTime += carState.mode == MODES.AGGRESIVE ? (-1*(modeTime)) : (carState.mode == MODES.CONSERVE ? modeTime : 0);
-            
-
-            const randomness = getRandomIntInclusive(90, 110) /100 ;
-            lapTime *= randomness;
-            carState.lastLapTime = lapTime;
-            carState.totalTime += lapTime;
-            
-        })
-
-        raceState.currentLap++;//increasae lap
-
-        const carArr = Object.values(raceState.carStates);
-        raceState.positions = carArr.sort((a,b)=>{
-            return (a.totalTime - b.totalTime);
-        })
-        .map((car)=>car.carID);
-        
+        // AUTOMATED CAR
         cars.forEach((carId)=>{
             const car = raceState.carStates[carId];
             if(carId != userCar){
@@ -138,22 +133,128 @@ function runLap(commands, raceId){
                     automatedCar(car);
                 }
                 if(car.tyreAge == 6){
-                    pitCar(car);
+                    pitCar(car,false);
                 }
                 if(car.tyreWear>75){
-                    pitCar(car);
+                    pitCar(car,false);
+                }
+                if(event && !(event.done) && event.eventType=="Rain" && car.tyre != TYRE_TYRES.INTERMEDIATE ){
+                    pitCar(car,true);
                 }
 
                 const md = getRandomIntInclusive(1,4);
                 car.mode = (car.energy < 30) ? (md<3 ? MODES.CONSERVE : MODES.NORMAL) : (md>1 ? MODES.AGGRESIVE : (md<4 ? MODES.CONSERVE : MODES.NORMAL));
             }
         });
+
+        let crashed = false;
+        if(event){
+            if(event.eventLap === raceState.currentLap || event.eventLength > event.currEventLap){
+                if(event.eventType == "Rain"){
+                    const willCrash = (getRandomIntInclusive(1,100)<9);
+                    if(willCrash){
+                        crash(raceState);
+                        crashed = true;
+
+                    }
+                }
+                if(event.eventType == "Crash"){
+                    crash(raceState);
+                    crashed = true;
+                }
+                event.currEventLap++;
+                if(event.currEventLap == event.eventLength)event.done=true
+            }
+        }
           
+
+        //LAPTIME 
+        const trackId = raceData.race.trackId;
+        console.log(trackId);
+        console.log(Tracks[trackId]);
+        const baseLapTime = Tracks[trackId].baseLapTime;
+        cars.forEach((carId)=>{
+            let lapTime = baseLapTime;
+            const carState = raceState.carStates[carId];
+            
+            if(!crashed){
+                if(!event){
+                    if(carState.tyre == TYRE_TYRES.SOFT)lapTime *=(getRandomIntInclusive(94,98)/100);
+                    if(carState.tyre == TYRE_TYRES.HARD)lapTime *=(getRandomIntInclusive(103,107)/100);
+                    if(carState.tyre == TYRE_TYRES.INTERMEDIATE)lapTime *=(getRandomIntInclusive(110,115)/100);
+                }
+                else{
+                    if(carState.tyre == TYRE_TYRES.SOFT)lapTime *=(getRandomIntInclusive(103,106)/100);
+                    if(carState.tyre == TYRE_TYRES.HARD)lapTime *=(getRandomIntInclusive(107,113)/100);
+                    if(carState.tyre == TYRE_TYRES.INTERMEDIATE)lapTime *=(getRandomIntInclusive(102,108)/100);
+                }
+
+                lapTime += carState.tyreWear * getRandomIntInclusive(3,7)/100;
+
+                const modeTime = getRandomIntInclusive(95,105)/100;
+                lapTime += carState.mode == MODES.AGGRESIVE ? (-1*(modeTime)) : (carState.mode == MODES.CONSERVE ? modeTime : 0);
+            
+            }
+            else{
+                lapTime += getRandomIntInclusive(15,25);
+                lapTime += carState.tyreWear * getRandomIntInclusive(3,7)/100;
+            }
+
+            const randomness = getRandomIntInclusive(90, 110) /100 ;
+            lapTime *= randomness;
+            carState.lastLapTime = lapTime;
+            carState.totalTime += lapTime;
+            
+        })
+        //POST LAP EFFECT
+        raceState.currentLap++;//increasae lap
+        
+        // SETTING LEADER-BOARD
+        const carArr = Object.values(raceState.carStates);
+        raceState.positions = carArr.sort((a,b)=>{
+            return (a.totalTime - b.totalTime);
+        })
+        .map((car)=>car.carID);
+        
         return raceState;
 
     } catch (error) {
         throw error;
     }
+}
+
+function crash(raceState){
+    const carState=raceState.carStates;
+    let crashingCar = null;
+    cars.forEach((carId)=>{
+        const car=raceState.carStates[carId];
+        let tyreparam = 20;
+        if(car.tyre == TYRE_TYRES.MEDIUM)tyreparam=15;
+        if(car.tyre == TYRE_TYRES.HARD)tyreparam=10;
+        if(car.tyre == TYRE_TYRES.INTERMEDIATE)tyreparam=5;
+        let modeparam = 20;
+        if(car.mode==MODES.NORMAL)modeparam=10;
+        if(car.mode==MODES.CONSERVE)modeparam=3;
+        const param = tyreparam + modeparam;
+        if(!crashingCar){
+            crashingCar={
+                carId,
+                param : param,
+            }
+        }
+        else{
+            if(crashingCar.param < param){
+                crashingCar.carId=carId;
+                crashingCar.param=param;
+            }
+        }
+    });
+    const car = carState[crashingCar.carId];
+    car.energy -= getRandomIntInclusive(18,23);
+    car.totalTime += getRandomIntInclusive(13,25);
+    car.tyreWear += getRandomIntInclusive(15,23);
+    car.mode = MODES.CONSERVE;
+    car.tyreAge++;
 }
 
 function automatedCar(car){
@@ -164,11 +265,14 @@ function automatedCar(car){
     }
 }
 
-function pitCar(car){
+function pitCar(car,ifRain){
     car.tyreAge = 0;
     car.tyreWear = 0;
     const td = getRandomIntInclusive(1,9);
     car.tyre = td <= 4 ? TYRE_TYRES.SOFT : (td > 7 ? TYRE_TYRES.HARD : TYRE_TYRES.MEDIUM);    
+    if(ifRain){
+        car.tyre = TYRE_TYRES.INTERMEDIATE;
+    }
     car.pitCount++;
     car.totalTime+=getRandomIntInclusive(13,17);
     car.energy+=getRandomIntInclusive(10,15);
